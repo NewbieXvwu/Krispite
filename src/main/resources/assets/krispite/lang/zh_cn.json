@@ -1,0 +1,8 @@
+{
+    "mod.krispite.name": "Krispite",
+    "mod.krispite.description": "为 Minecraft 集成 KosmicKrisp Vulkan 驱动",
+    "mod.krispite.driver_ok": "KosmicKrisp 驱动已激活，Vulkan 后端正在 KosmicKrisp 上运行。",
+    "mod.krispite.driver_mismatch": "当前 Vulkan 驱动不是 KosmicKrisp：%s",
+    "mod.krispite.prelaunch_failed": "Krispite 无法确认 Vulkan 驱动，请查看日志了解详情。",
+    "mod.krispite.graphics_backend.locked": "已被 Krispite 锁定为 Vulkan。此设置为 KosmicKrisp 驱动所必需。"
+}

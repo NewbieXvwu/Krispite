@@ -1,0 +1,117 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "krispite" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE")
+}
+
+// -- native 库管理 --
+// 开发者首次构建前需运行 tools/build_native.sh 编译原生库。
+// 若原生库缺失，构建会警告但不会失败（支持交叉平台编译 Java 代码）。
+// 发布构建时设 -Pkrispite.requireNatives=true 可强制要求原生库存在。
+
+def nativesDir = layout.projectDirectory.dir("src/main/resources/natives")
+def dylibKosmicKrisp = nativesDir.file("libvulkan_kosmickrisp.dylib")
+def dylibVulkanLoader = nativesDir.file("libvulkan.1.dylib")
+def legalNoticesDir = layout.projectDirectory.dir("src/main/resources/META-INF/licenses/kosmickrisp")
+def kosmicKrispLicense = legalNoticesDir.file("LICENSE")
+def kosmicKrispThirdPartyNotices = legalNoticesDir.file("THIRD_PARTY_NOTICES.txt")
+def requireNatives = project.hasProperty("krispite.requireNatives")
+
+tasks.register("checkNatives") {
+    description = "检查原生库是否存在，缺失时给出构建指引。"
+    doLast {
+        def missing = []
+        if (!dylibKosmicKrisp.asFile.exists()) missing << dylibKosmicKrisp.asFile.name
+        if (!dylibVulkanLoader.asFile.exists()) missing << dylibVulkanLoader.asFile.name
+        if (!missing.isEmpty()) {
+            def msg = "原生库缺失: ${missing.join(', ')}\n" +
+                    "请运行 ./tools/build_native.sh 编译原生库。\n" +
+                    "若仅需编译 Java 代码（如交叉平台 CI），可忽略此警告。"
+            if (requireNatives) {
+                throw new GradleException(msg)
+            } else {
+                logger.warn(msg)
+            }
+        } else {
+            logger.lifecycle("原生库就绪。")
+        }
+    }
+}
+
+tasks.register("checkThirdPartyNotices") {
+    description = "检查 KosmicKrisp 的许可证与第三方声明是否已生成。"
+    doLast {
+        def missing = []
+        if (!kosmicKrispLicense.asFile.exists()) missing << "META-INF/licenses/kosmickrisp/LICENSE"
+        if (!kosmicKrispThirdPartyNotices.asFile.exists()) {
+            missing << "META-INF/licenses/kosmickrisp/THIRD_PARTY_NOTICES.txt"
+        }
+        if (!missing.isEmpty()) {
+            def msg = "KosmicKrisp 许可证文件缺失: ${missing.join(', ')}\n" +
+                    "请运行 ./tools/build_native.sh 生成原生库及许可证文件。"
+            if (requireNatives) {
+                throw new GradleException(msg)
+            } else {
+                logger.warn(msg)
+            }
+        } else {
+            logger.lifecycle("KosmicKrisp 许可证文件就绪。")
+        }
+    }
+}
+
+processResources.dependsOn("checkNatives", "checkThirdPartyNotices")
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+    }
+}
