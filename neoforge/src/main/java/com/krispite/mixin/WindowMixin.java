@@ -43,13 +43,14 @@ abstract class WindowMixin {
         }
 
         GL.createCapabilities();
-        try {
-            earlyDisplay.getClass().getMethod("close").invoke(earlyDisplay);
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Unable to close NeoForge early display for Vulkan", exception);
-        } finally {
-            GLFW.glfwMakeContextCurrent(0L);
-            GLFW.glfwDestroyWindow(earlyWindow);
+        // close() exists only on the concrete net.neoforged.fml.earlydisplay.DisplayWindow,
+        // not on the EarlyLoadingScreenController interface. Mixins cannot target loader/
+        // earlydisplay classes, so an @Accessor mixin is not an option; call it directly when
+        // the runtime type matches, and skip cleanup gracefully otherwise.
+        if (earlyDisplay instanceof net.neoforged.fml.earlydisplay.DisplayWindow window) {
+            window.close();
         }
+        GLFW.glfwMakeContextCurrent(0L);
+        GLFW.glfwDestroyWindow(earlyWindow);
     }
 }
