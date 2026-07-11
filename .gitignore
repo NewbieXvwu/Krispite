@@ -6,13 +6,13 @@ build/
 .env
 *.log
 logs/
-.minecraft-cli/
+.minecraft*/
 .native-build/
 bin/
 saves/
 launch-cli.sh
 run.sh
 debug-launch.sh
-src/main/resources/natives/*.dylib
-src/main/resources/natives/natives-version.properties
-src/main/resources/META-INF/licenses/kosmickrisp/
+common/src/main/resources/natives/*.dylib
+common/src/main/resources/natives/natives-version.properties
+common/src/main/resources/META-INF/licenses/kosmickrisp/

@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT"
+
+[[mods]]
+modId="krispite"
+version="${version}"
+displayName="Krispite"
+description='''KosmicKrisp Vulkan driver integration for Minecraft'''
+
+[[mixins]]
+config="krispite.mixins.json"
+
+[[mixins]]
+config="krispite.neoforge.mixins.json"
+
+[[dependencies.krispite]]
+    modId="neoforge"
+    type="required"
+    versionRange="[26.2,)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.krispite]]
+    modId="minecraft"
+    type="required"
+    versionRange="[26.2,)"
+    ordering="NONE"
+    side="CLIENT"

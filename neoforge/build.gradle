@@ -1,0 +1,54 @@
+plugins {
+    id 'net.neoforged.moddev' version "${moddevgradle_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+        }
+    }
+
+    mods {
+        krispite {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+tasks.withType(net.neoforged.nfrtgradle.NeoFormRuntimeTask).configureEach {
+    def javaLauncher = javaToolchains.launcherFor { it.languageVersion = JavaLanguageVersion.of(25) }
+    getJavaExecutable().set(javaLauncher.map { it.executablePath.asFile.absolutePath })
+}
+
+sourceSets {
+    main {
+        java.srcDir project(':common').sourceSets.main.java
+        resources.srcDir project(':common').sourceSets.main.resources
+    }
+}
+
+processResources {
+    def version = project.version
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand "version": version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from(rootProject.file("LICENSE"))
+}

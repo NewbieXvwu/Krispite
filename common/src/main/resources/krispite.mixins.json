@@ -1,0 +1,13 @@
+{
+    "required": true,
+    "package": "com.krispite.mixin",
+    "compatibilityLevel": "JAVA_25",
+    "client": [
+        "NativeLibrariesBootstrapMixin",
+        "OptionsMixin",
+        "OptionInstanceMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

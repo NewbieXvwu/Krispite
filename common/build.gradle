@@ -1,0 +1,83 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    compileOnly "net.fabricmc:sponge-mixin:0.17.3+mixin.0.8.7"
+    compileOnly "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
+}
+
+loom {
+    mods {
+        "krispite-common" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+// -- native library management --
+def nativesDir = layout.projectDirectory.dir("src/main/resources/natives")
+def dylibKosmicKrisp = nativesDir.file("libvulkan_kosmickrisp.dylib")
+def dylibVulkanLoader = nativesDir.file("libvulkan.1.dylib")
+def legalNoticesDir = layout.projectDirectory.dir("src/main/resources/META-INF/licenses/kosmickrisp")
+def kosmicKrispLicense = legalNoticesDir.file("LICENSE")
+def kosmicKrispThirdPartyNotices = legalNoticesDir.file("THIRD_PARTY_NOTICES.txt")
+def requireNatives = project.hasProperty("krispite.requireNatives")
+
+tasks.register("checkNatives") {
+    description = "Checks whether native libraries are present; warns if missing."
+    doLast {
+        def missing = []
+        if (!dylibKosmicKrisp.asFile.exists()) missing << dylibKosmicKrisp.asFile.name
+        if (!dylibVulkanLoader.asFile.exists()) missing << dylibVulkanLoader.asFile.name
+        if (!missing.isEmpty()) {
+            def msg = "Native libraries missing: ${missing.join(', ')}\n" +
+                    "Run ./tools/build_native.sh to build native libraries.\n" +
+                    "If you only need to compile Java code (e.g. cross-platform CI), you may ignore this warning."
+            if (requireNatives) {
+                throw new GradleException(msg)
+            } else {
+                logger.warn(msg)
+            }
+        } else {
+            logger.lifecycle("Native libraries ready.")
+        }
+    }
+}
+
+tasks.register("checkThirdPartyNotices") {
+    description = "Checks whether KosmicKrisp license and third-party notices have been generated."
+    doLast {
+        def missing = []
+        if (!kosmicKrispLicense.asFile.exists()) missing << "META-INF/licenses/kosmickrisp/LICENSE"
+        if (!kosmicKrispThirdPartyNotices.asFile.exists()) {
+            missing << "META-INF/licenses/kosmickrisp/THIRD_PARTY_NOTICES.txt"
+        }
+        if (!missing.isEmpty()) {
+            def msg = "KosmicKrisp license files missing: ${missing.join(', ')}\n" +
+                    "Run ./tools/build_native.sh to generate native libraries and license files."
+            if (requireNatives) {
+                throw new GradleException(msg)
+            } else {
+                logger.warn(msg)
+            }
+        } else {
+            logger.lifecycle("KosmicKrisp license files ready.")
+        }
+    }
+}
+
+processResources.dependsOn("checkNatives", "checkThirdPartyNotices")

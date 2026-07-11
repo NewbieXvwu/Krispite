@@ -1,7 +1,0 @@
-{
-    "mod.krispite.name": "Krispite",
-    "mod.krispite.description": "KosmicKrisp Vulkan driver integration for Minecraft",
-    "mod.krispite.driver_ok": "KosmicKrisp driver is active. Vulkan backend is running on KosmicKrisp.",
-    "mod.krispite.driver_mismatch": "Current Vulkan driver is not KosmicKrisp: %s",
-    "mod.krispite.prelaunch_failed": "Krispite could not confirm the Vulkan driver. See the log for details."
-}

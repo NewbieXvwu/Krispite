@@ -1,0 +1,12 @@
+{
+    "required": true,
+    "package": "com.krispite.mixin",
+    "compatibilityLevel": "JAVA_25",
+    "client": [
+        "WindowMixin",
+        "MinecraftMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

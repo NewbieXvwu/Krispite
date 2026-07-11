@@ -1,0 +1,22 @@
+{
+    "schemaVersion": 1,
+    "id": "krispite",
+    "version": "${version}",
+    "name": "Krispite",
+    "description": "KosmicKrisp Vulkan driver integration for Minecraft",
+    "environment": "client",
+    "entrypoints": {
+        "preLaunch": ["com.krispite.fabric.KrispiteFabric"]
+    },
+    "mixins": [
+        {
+            "config": "krispite.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": ">=26.2",
+        "java": ">=25"
+    }
+}
