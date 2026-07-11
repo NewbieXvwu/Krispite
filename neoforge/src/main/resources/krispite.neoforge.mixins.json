@@ -1,6 +1,7 @@
 {
     "required": true,
     "package": "com.krispite.mixin",
+    "plugin": "com.krispite.mixin.KrispiteNeoForgeMixinPlugin",
     "compatibilityLevel": "JAVA_25",
     "client": [
         "WindowMixin",
