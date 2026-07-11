@@ -9,9 +9,16 @@ Krispite 用它替换 Minecraft 默认的 MoltenVK，获得更标准的 Vulkan �
 # 设备要求
 - Apple Silicon Mac（M1 及以上）
 - macOS 26+
+- Minecraft 26.2+
+- [Fabric Loader](https://fabricmc.net/) **或** [NeoForge](https://neoforged.net/)
 
 # 安装
-下载模组的 jar 包，并启动游戏。模组会自动将必要的库文件解压并加载。
+1. 从 [Releases](https://github.com/NewbieXvwu/Krispite/releases) 下载与你加载器对应的 JAR：
+   - Fabric：`krispite-fabric-*.jar`
+   - NeoForge：`krispite-neoforge-*.jar`
+2. 放入 Minecraft 的 `mods` 文件夹并启动游戏。
+
+模组会自动将必要的库文件解压并加载。
 
 # 代价
 目前 KosmicKrisp 仍处于高速迭代期，大量代码处于能跑就行的状态，缺少深度优化。在我的 MacBook 上测试发现它的性能比默认的 MoltenVK 低大约 14%。
@@ -28,9 +35,13 @@ brew install meson ninja llvm spirv-tools
 # 2. 编译原生库（首次构建或上游更新时需要）
 ./tools/build_native.sh
 
-# 3. 编译模组
+# 3. 编译模组（同时产出 Fabric 与 NeoForge JAR）
 ./gradlew build
 ```
+
+产物：
+- `fabric/build/libs/krispite-fabric-<version>.jar`
+- `neoforge/build/libs/krispite-neoforge-<version>.jar`
 
 原生库缺失时构建会警告但不会失败，方便在非 macOS 上编译 Java 代码。
 

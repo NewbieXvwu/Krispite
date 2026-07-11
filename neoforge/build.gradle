@@ -49,6 +49,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
+base {
+    archivesName = "krispite-neoforge"
+}
+
 jar {
     from(rootProject.file("LICENSE"))
 }

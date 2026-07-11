@@ -47,6 +47,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
+base {
+    archivesName = "krispite-fabric"
+}
+
 jar {
     from(rootProject.file("LICENSE"))
 }

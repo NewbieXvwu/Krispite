@@ -11,9 +11,16 @@ Krispite swaps out Minecraft's default MoltenVK for KosmicKrisp, delivering a mo
 # System Requirements
 - Apple Silicon Mac (M1 or newer)
 - macOS 26+
+- Minecraft 26.2+
+- [Fabric Loader](https://fabricmc.net/) **or** [NeoForge](https://neoforged.net/)
 
 # Installation
-Simply download the mod's JAR file and launch the game. The mod will automatically extract and load the necessary library files.
+1. Download the JAR that matches your loader from the [Releases](https://github.com/NewbieXvwu/Krispite/releases) page:
+   - Fabric: `krispite-fabric-*.jar`
+   - NeoForge: `krispite-neoforge-*.jar`
+2. Place it in your Minecraft `mods` folder and launch the game.
+
+The mod will automatically extract and load the necessary library files.
 
 # Caveats
 KosmicKrisp is currently in a phase of rapid iteration. Much of its codebase is still in a "make it work" state, lacking deep optimization. In my own MacBook tests, I found its performance to be roughly 14% lower than the default MoltenVK.
@@ -31,9 +38,13 @@ brew install meson ninja llvm spirv-tools
 # 2. Compile native libraries (required for the first build or upon upstream updates)
 ./tools/build_native.sh
 
-# 3. Build the mod
+# 3. Build the mod (produces Fabric + NeoForge JARs)
 ./gradlew build
 ```
+
+Outputs:
+- `fabric/build/libs/krispite-fabric-<version>.jar`
+- `neoforge/build/libs/krispite-neoforge-<version>.jar`
 
 If the native libraries are missing, the build process will issue a warning but will not fail. This is designed to make it easier to compile the Java code on non-macOS systems.
 
