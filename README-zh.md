@@ -9,7 +9,7 @@ Krispite 用它替换 Minecraft 默认的 MoltenVK，获得更标准的 Vulkan �
 # 设备要求
 - Apple Silicon Mac（M1 及以上）
 - macOS 26+
-- Minecraft 26.2+
+- Minecraft 26.3+（26.2 请使用 Krispite 1.1.0）
 - [Fabric Loader](https://fabricmc.net/) **或** [NeoForge](https://neoforged.net/)
 
 # 安装
@@ -26,11 +26,12 @@ Krispite 用它替换 Minecraft 默认的 MoltenVK，获得更标准的 Vulkan �
 
 # 开发者构建
 
-前置条件：[JDK 25](https://jdk.java.net/25/)（Minecraft 26.2 强制要求）、macOS 26 + Apple Silicon（编译原生库时需要）、[Homebrew](https://brew.sh)。
+前置条件：[JDK 25](https://jdk.java.net/25/)（Minecraft 26.3 强制要求）、macOS 26 + Apple Silicon（编译原生库时需要）、[Homebrew](https://brew.sh)。
 
 ```bash
 # 1. 安装编译依赖（一次性）
-brew install meson ninja llvm spirv-tools
+brew install meson ninja cmake llvm libclc spirv-llvm-translator spirv-tools
+pip3 install mako pyyaml packaging
 
 # 2. 编译原生库（首次构建或上游更新时需要）
 ./tools/build_native.sh

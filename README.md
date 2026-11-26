@@ -11,7 +11,7 @@ Krispite swaps out Minecraft's default MoltenVK for KosmicKrisp, delivering a mo
 # System Requirements
 - Apple Silicon Mac (M1 or newer)
 - macOS 26+
-- Minecraft 26.2+
+- Minecraft 26.3+ (use Krispite 1.1.0 for 26.2)
 - [Fabric Loader](https://fabricmc.net/) **or** [NeoForge](https://neoforged.net/)
 
 # Installation
@@ -29,11 +29,12 @@ Because of this, using Krispite right now is essentially "future-proofing": prov
 
 # Building from Source
 
-**Prerequisites:** [JDK 25](https://jdk.java.net/25/) (strictly required by Minecraft 26.2), macOS 26 + Apple Silicon, and [Homebrew](https://brew.sh).
+**Prerequisites:** [JDK 25](https://jdk.java.net/25/) (strictly required by Minecraft 26.3), macOS 26 + Apple Silicon, and [Homebrew](https://brew.sh).
 
 ```bash
 # 1. Install build dependencies (one-time)
-brew install meson ninja llvm spirv-tools
+brew install meson ninja cmake llvm libclc spirv-llvm-translator spirv-tools
+pip3 install mako pyyaml packaging
 
 # 2. Compile native libraries (required for the first build or upon upstream updates)
 ./tools/build_native.sh

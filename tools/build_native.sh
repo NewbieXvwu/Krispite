@@ -41,6 +41,7 @@ if [ "$KRISPITE_LANG" = "en" ]; then
   msg_xcode_install="Install: xcode-select --install"
   msg_sdk_empty="xcrun --show-sdk-path returned empty — Xcode CLI tools may be misconfigured."
   msg_brew_prereq="Install Homebrew dependencies: brew install"
+  msg_python_prereq="Mesa needs the Python modules mako, PyYAML and packaging: pip3 install mako pyyaml packaging"
 else
   msg_usage_title="从 Mesa 与 Vulkan-Loader 源码构建 Krispite 随附的 macOS arm64 原生库"
   msg_usage_body="用法:
@@ -77,6 +78,7 @@ else
   msg_xcode_install="安装命令: xcode-select --install"
   msg_sdk_empty="xcrun --show-sdk-path 返回空 — Xcode CLI 工具可能配置异常。"
   msg_brew_prereq="请先安装 Homebrew 依赖: brew install"
+  msg_python_prereq="Mesa 需要 Python 模块 mako、PyYAML 与 packaging: pip3 install mako pyyaml packaging"
 fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -98,30 +100,30 @@ if [ -z "$SDKROOT" ]; then
 fi
 echo "  macOS SDK: $SDKROOT"
 
-# --- Homebrew dependencies ---
+# --- Build dependencies ---
+# meson/ninja may come from Homebrew or pip; the LLVM/SPIR-V toolchain must come from Homebrew.
 MISSING=""
-for brew_pkg in meson ninja llvm spirv-tools; do
+for tool in meson ninja; do
+  command -v "$tool" >/dev/null || MISSING="$MISSING $tool"
+done
+for brew_pkg in llvm libclc spirv-llvm-translator spirv-tools; do
   brew list "$brew_pkg" &>/dev/null || MISSING="$MISSING $brew_pkg"
 done
 if [ -n "$MISSING" ]; then
   echo "  $msg_brew_prereq$MISSING" >&2
   exit 1
 fi
+if ! python3 -c 'import mako, yaml, packaging' 2>/dev/null; then
+  echo "  $msg_python_prereq" >&2
+  exit 1
+fi
 echo "  meson $(meson --version 2>/dev/null || echo '?')"
 echo "  ninja $(ninja --version 2>/dev/null || echo '?')"
 
-# --- cmake (prefer 3.x) ---
+# --- cmake ---
 PATH="$HOME/.local/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/cmake/bin:$PATH"
 export PKG_CONFIG_PATH="/opt/homebrew/opt/llvm/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 CMAKE="$(command -v cmake 2>/dev/null || true)"
-if [ -z "$CMAKE" ] || cmake --version 2>/dev/null | grep -q 'cmake version 4\.'; then
-  for candidate in /opt/homebrew/bin/cmake "$HOME/.local/share/mise/installs/python/3.14/bin/cmake" /usr/local/bin/cmake; do
-    if [ -x "$candidate" ] && "$candidate" --version 2>/dev/null | grep -q 'cmake version 3\.'; then
-      CMAKE="$candidate"
-      break
-    fi
-  done
-fi
 if [ -z "$CMAKE" ]; then
   echo "  $msg_tool_missing cmake" >&2
   echo "  brew install cmake" >&2
@@ -140,21 +142,28 @@ LEGAL_OUTPUT="$ROOT/common/src/main/resources/META-INF/licenses/kosmickrisp"
 mkdir -p "$WORK" "$OUTPUT"
 mkdir -p "$LEGAL_OUTPUT"
 
+# clone_or_pull <url> <dir> [commit]: with a commit, check out exactly that revision.
 clone_or_pull() {
-  local url="$1" dir="$2"
+  local url="$1" dir="$2" commit="${3:-}"
   if [ ! -d "$dir/.git" ]; then
     git clone --depth 1 "$url" "$dir"
-  elif [ "${KRISPITE_NATIVE_REFRESH:-0}" = "1" ]; then
+  elif [ -z "$commit" ] && [ "${KRISPITE_NATIVE_REFRESH:-0}" = "1" ]; then
     git -C "$dir" pull --ff-only
+  fi
+  if [ -n "$commit" ]; then
+    git -C "$dir" fetch --depth 1 origin "$commit"
+    git -C "$dir" checkout --detach FETCH_HEAD
   fi
 }
 
 echo "$msg_cloning"
-clone_or_pull https://gitlab.freedesktop.org/mesa/mesa.git "$MESA_DIR"
-clone_or_pull https://github.com/KhronosGroup/Vulkan-Loader.git "$LOADER_DIR"
+clone_or_pull https://gitlab.freedesktop.org/mesa/mesa.git "$MESA_DIR" "${KRISPITE_MESA_COMMIT:-}"
+clone_or_pull https://github.com/KhronosGroup/Vulkan-Loader.git "$LOADER_DIR" "${KRISPITE_LOADER_COMMIT:-}"
 
 echo "$msg_building_mesa"
-meson setup "$MESA_BUILD" "$MESA_DIR" --wipe \
+MESON_WIPE=""
+[ -d "$MESA_BUILD/meson-private" ] && MESON_WIPE="--wipe"
+meson setup "$MESA_BUILD" "$MESA_DIR" $MESON_WIPE \
   -Dplatforms=macos \
   -Dvulkan-drivers=kosmickrisp \
   -Dgallium-drivers= \
@@ -169,27 +178,21 @@ meson setup "$MESA_BUILD" "$MESA_DIR" --wipe \
 ninja -C "$MESA_BUILD"
 
 echo "$msg_building_loader"
-VK_HEADERS_DIR=""
-for hdir in "$WORK/Vulkan-Headers/install/share/cmake/VulkanHeaders" \
-            "/opt/homebrew/opt/vulkan-headers/share/cmake/VulkanHeaders"; do
-  if [ -f "$hdir/VulkanHeadersConfig.cmake" ]; then
-    VK_HEADERS_DIR="$hdir"
-    break
-  fi
-done
-if [ -z "$VK_HEADERS_DIR" ]; then
-  echo "  Building Vulkan-Headers from source..." >&2
-  VK_HEADERS_SRC="$WORK/Vulkan-Headers"
+# Build the Vulkan-Headers revision the loader declares as known-good;
+# a mismatched header version breaks the loader build.
+VK_HEADERS_TAG="$(python3 -c 'import json, sys; print(next(r["commit"] for r in json.load(open(sys.argv[1]))["repos"] if r["name"] == "Vulkan-Headers"))' "$LOADER_DIR/scripts/known_good.json")"
+VK_HEADERS_SRC="$WORK/Vulkan-Headers"
+VK_HEADERS_DIR="$VK_HEADERS_SRC/install/share/cmake/VulkanHeaders"
+if [ "$(cat "$VK_HEADERS_SRC/install/.krispite-tag" 2>/dev/null)" != "$VK_HEADERS_TAG" ]; then
+  echo "  Building Vulkan-Headers $VK_HEADERS_TAG..."
   rm -rf "$VK_HEADERS_SRC"
-  git clone --depth 1 --branch vulkan-tmp-1.4.356 \
+  git clone --depth 1 --branch "$VK_HEADERS_TAG" \
     https://github.com/KhronosGroup/Vulkan-Headers.git "$VK_HEADERS_SRC"
-  mkdir -p "$VK_HEADERS_SRC/build"
   "$CMAKE" -S "$VK_HEADERS_SRC" -B "$VK_HEADERS_SRC/build" \
-    -DCMAKE_INSTALL_PREFIX="$VK_HEADERS_SRC/install" \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    -DCMAKE_INSTALL_PREFIX="$VK_HEADERS_SRC/install"
   "$CMAKE" --build "$VK_HEADERS_SRC/build"
   "$CMAKE" --install "$VK_HEADERS_SRC/build"
-  VK_HEADERS_DIR="$VK_HEADERS_SRC/install/share/cmake/VulkanHeaders"
+  echo "$VK_HEADERS_TAG" > "$VK_HEADERS_SRC/install/.krispite-tag"
 fi
 "$CMAKE" -S "$LOADER_DIR" -B "$LOADER_BUILD" \
   -DCMAKE_BUILD_TYPE=Release \

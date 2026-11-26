@@ -11,6 +11,10 @@ neoForge {
     runs {
         client {
             client()
+            def quickPlayWorld = project.findProperty("krispite.quickPlayWorld")
+            if (quickPlayWorld) {
+                programArguments.addAll("--quickPlaySingleplayer", quickPlayWorld.toString())
+            }
         }
     }
 

@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mesa_commit:
+        description: Mesa commit to build KosmicKrisp from (default: latest main)
+        required: false
+      loader_commit:
+        description: Vulkan-Loader commit (default: latest main)
+        required: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  KRISPITE_LANG: en
+
+jobs:
+  natives:
+    name: Build KosmicKrisp natives
+    runs-on: macos-26
+    timeout-minutes: 90
+    outputs:
+      mesa: ${{ steps.rev.outputs.mesa }}
+      loader: ${{ steps.rev.outputs.loader }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve upstream revisions
+        id: rev
+        env:
+          MESA_INPUT: ${{ inputs.mesa_commit }}
+          LOADER_INPUT: ${{ inputs.loader_commit }}
+        run: |
+          mesa="${MESA_INPUT:-$(git ls-remote https://gitlab.freedesktop.org/mesa/mesa.git refs/heads/main | cut -f1)}"
+          loader="${LOADER_INPUT:-$(git ls-remote https://github.com/KhronosGroup/Vulkan-Loader.git refs/heads/main | cut -f1)}"
+          echo "mesa=$mesa" >> "$GITHUB_OUTPUT"
+          echo "loader=$loader" >> "$GITHUB_OUTPUT"
+          echo "Mesa: $mesa / Vulkan-Loader: $loader"
+
+      - name: Restore natives cache
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            common/src/main/resources/natives/libvulkan_kosmickrisp.dylib
+            common/src/main/resources/natives/libvulkan.1.dylib
+            common/src/main/resources/natives/natives-version.properties
+            common/src/main/resources/META-INF/licenses/kosmickrisp
+          key: natives-${{ steps.rev.outputs.mesa }}-${{ steps.rev.outputs.loader }}-${{ hashFiles('tools/build_native.sh') }}
+
+      - name: Install build dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          brew install ninja llvm libclc spirv-llvm-translator spirv-tools
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install meson mako pyyaml packaging
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Build natives
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          KRISPITE_MESA_COMMIT: ${{ steps.rev.outputs.mesa }}
+          KRISPITE_LOADER_COMMIT: ${{ steps.rev.outputs.loader }}
+        run: ./tools/build_native.sh
+
+      - name: Show native library info
+        run: |
+          cat common/src/main/resources/natives/natives-version.properties
+          file common/src/main/resources/natives/*.dylib
+          otool -L common/src/main/resources/natives/*.dylib
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: natives
+          path: |
+            common/src/main/resources/natives/libvulkan_kosmickrisp.dylib
+            common/src/main/resources/natives/libvulkan.1.dylib
+            common/src/main/resources/natives/natives-version.properties
+            common/src/main/resources/META-INF/licenses/kosmickrisp
+          if-no-files-found: error
+
+  build:
+    name: Build mod jars
+    needs: natives
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: natives
+          path: common/src/main/resources
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew build -Pkrispite.requireNatives
+      - name: Check bundled natives
+        run: |
+          for jar in fabric/build/libs/krispite-fabric-*.jar neoforge/build/libs/krispite-neoforge-*.jar; do
+            case "$jar" in *-sources.jar) continue ;; esac
+            echo "== $jar"
+            for entry in natives/libvulkan_kosmickrisp.dylib natives/libvulkan.1.dylib natives/natives-version.properties \
+                         natives/libkosmickrisp_icd.json META-INF/licenses/kosmickrisp/LICENSE; do
+              unzip -l "$jar" "$entry" > /dev/null || { echo "::error::$jar is missing $entry"; exit 1; }
+            done
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: krispite-jars
+          path: |
+            fabric/build/libs/krispite-fabric-*.jar
+            neoforge/build/libs/krispite-neoforge-*.jar
+
+  game-test:
+    name: Game test (${{ matrix.loader }} ${{ matrix.minecraft }})
+    needs: natives
+    runs-on: macos-26
+    timeout-minutes: 60
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { loader: fabric, minecraft: "26.3", experimental: false }
+          - { loader: neoforge, minecraft: "26.3", experimental: false }
+          # Upcoming release; failures are informational only.
+          - { loader: fabric, minecraft: "26.4-pre-1", experimental: true }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: natives
+          path: common/src/main/resources
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Prepare dev environment
+        run: ./gradlew :${{ matrix.loader }}:classes -Pminecraft_version=${{ matrix.minecraft }}
+      - name: Run game
+        run: .github/scripts/game-test.sh ${{ matrix.loader }} ${{ matrix.minecraft }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: game-test-${{ matrix.loader }}-${{ matrix.minecraft }}
+          path: game-test-output

@@ -17,13 +17,13 @@ config="krispite.neoforge.mixins.json"
 [[dependencies.krispite]]
     modId="neoforge"
     type="required"
-    versionRange="[26.2,)"
+    versionRange="[26.3,)"
     ordering="NONE"
     side="CLIENT"
 
 [[dependencies.krispite]]
     modId="minecraft"
     type="required"
-    versionRange="[26.2,)"
+    versionRange="[26.3,)"
     ordering="NONE"
     side="CLIENT"

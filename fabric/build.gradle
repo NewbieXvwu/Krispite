@@ -20,6 +20,10 @@ loom {
     runs {
         client {
             client()
+            def quickPlayWorld = project.findProperty("krispite.quickPlayWorld")
+            if (quickPlayWorld) {
+                programArgs "--quickPlaySingleplayer", quickPlayWorld.toString()
+            }
         }
     }
 }
