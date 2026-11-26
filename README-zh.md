@@ -46,5 +46,16 @@ pip3 install mako pyyaml packaging
 
 原生库缺失时构建会警告但不会失败，方便在非 macOS 上编译 Java 代码。
 
+第 2 步也可以改为在 GitHub Actions 上手动运行 **Build** 工作流，再把 `natives` 产物复制到 `common/src/main/resources/`。
+
+要确认游戏确实通过 KosmicKrisp 渲染，请在真机上运行游戏测试。它会在后台启动开发客户端（不抢焦点），进入新生成的超平坦世界，只截取游戏窗口并检查日志，结果保存在 `game-test-output/`：
+
+```bash
+./tools/game_test.sh fabric
+./tools/game_test.sh neoforge
+```
+
+GitHub 托管的 macOS runner 只有 KosmicKrisp 不支持的虚拟化 GPU，因此这个测试无法在 CI 中运行。
+
 # 卸载
 删掉 mod JAR 和 `~/.local/share/kosmickrisp-mc/`。

@@ -49,5 +49,16 @@ Outputs:
 
 If the native libraries are missing, the build process will issue a warning but will not fail. This is designed to make it easier to compile the Java code on non-macOS systems.
 
+Instead of step 2 you can also run the **Build** workflow on GitHub Actions (manual trigger) and copy the `natives` artifact into `common/src/main/resources/`.
+
+To check that the game actually renders through KosmicKrisp, run the in-game smoke test on a real Mac. It starts the dev client in the background (without taking focus), joins a fresh flat world, captures only the game window and checks the log; results go to `game-test-output/`:
+
+```bash
+./tools/game_test.sh fabric
+./tools/game_test.sh neoforge
+```
+
+GitHub-hosted macOS runners only expose a paravirtual GPU that KosmicKrisp does not support, so this test cannot run in CI.
+
 # Uninstallation
 Delete the mod JAR file, along with the `~/.local/share/kosmickrisp-mc/` directory.

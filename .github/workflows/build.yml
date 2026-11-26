@@ -1,8 +1,9 @@
-name: CI
+name: Build
 
+# Builds the KosmicKrisp natives and both mod jars on demand. In-game testing needs a real
+# Apple GPU (GitHub-hosted runners only expose the "Apple Paravirtual device", which
+# KosmicKrisp does not support), so it is done locally with tools/game_test.sh.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
     inputs:
       mesa_commit:
@@ -102,9 +103,6 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
-        with:
-          # Default is read-only outside the default branch; let branch pushes seed the cache too.
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - run: ./gradlew build -Pkrispite.requireNatives
       - name: Check bundled natives
         run: |
@@ -122,53 +120,3 @@ jobs:
           path: |
             fabric/build/libs/krispite-fabric-*.jar
             neoforge/build/libs/krispite-neoforge-*.jar
-
-  game-test:
-    name: Game test (${{ matrix.loader }} ${{ matrix.minecraft }})
-    needs: natives
-    runs-on: macos-26
-    timeout-minutes: 60
-    continue-on-error: ${{ matrix.experimental }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { loader: fabric, minecraft: "26.3", experimental: false }
-          - { loader: neoforge, minecraft: "26.3", experimental: false }
-          # Upcoming release; failures are informational only.
-          - { loader: fabric, minecraft: "26.4-pre-1", experimental: true }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          name: natives
-          path: common/src/main/resources
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 25
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          # Default is read-only outside the default branch; let branch pushes seed the cache too.
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - name: Prepare dev environment
-        run: ./gradlew :${{ matrix.loader }}:classes -Pminecraft_version=${{ matrix.minecraft }}
-      - name: Run game
-        env:
-          VK_LOADER_DEBUG: error,warn,driver
-        run: .github/scripts/game-test.sh ${{ matrix.loader }} ${{ matrix.minecraft }}
-      - name: Vulkan diagnostics
-        if: always()
-        run: |
-          echo 'import Metal; print("Metal device:", MTLCreateSystemDefaultDevice()?.name ?? "none")' > "$RUNNER_TEMP/metal.swift"
-          swift "$RUNNER_TEMP/metal.swift" || true
-          system_profiler SPDisplaysDataType || true
-          brew install vulkan-tools > /dev/null
-          ICD="$HOME/.local/share/kosmickrisp-mc/icd/libkosmickrisp_icd.json"
-          cat "$ICD" || true
-          VK_LOADER_DEBUG=error,warn,info,driver VK_DRIVER_FILES="$ICD" vulkaninfo --summary 2>&1 | tee game-test-output/vulkaninfo.txt || true
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: game-test-${{ matrix.loader }}-${{ matrix.minecraft }}
-          path: game-test-output
