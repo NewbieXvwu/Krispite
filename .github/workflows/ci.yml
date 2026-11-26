@@ -102,6 +102,9 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          # Default is read-only outside the default branch; let branch pushes seed the cache too.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - run: ./gradlew build -Pkrispite.requireNatives
       - name: Check bundled natives
         run: |
@@ -145,10 +148,25 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          # Default is read-only outside the default branch; let branch pushes seed the cache too.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Prepare dev environment
         run: ./gradlew :${{ matrix.loader }}:classes -Pminecraft_version=${{ matrix.minecraft }}
       - name: Run game
+        env:
+          VK_LOADER_DEBUG: error,warn,driver
         run: .github/scripts/game-test.sh ${{ matrix.loader }} ${{ matrix.minecraft }}
+      - name: Vulkan diagnostics
+        if: always()
+        run: |
+          echo 'import Metal; print("Metal device:", MTLCreateSystemDefaultDevice()?.name ?? "none")' > "$RUNNER_TEMP/metal.swift"
+          swift "$RUNNER_TEMP/metal.swift" || true
+          system_profiler SPDisplaysDataType || true
+          brew install vulkan-tools > /dev/null
+          ICD="$HOME/.local/share/vulkan/icd.d/libkosmickrisp_icd.json"
+          cat "$ICD" || true
+          VK_LOADER_DEBUG=error,warn,info,driver VK_DRIVER_FILES="$ICD" vulkaninfo --summary 2>&1 | tee game-test-output/vulkaninfo.txt || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
