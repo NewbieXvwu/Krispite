@@ -5,9 +5,6 @@
     "name": "Krispite",
     "description": "KosmicKrisp Vulkan driver integration for Minecraft",
     "environment": "client",
-    "entrypoints": {
-        "preLaunch": ["com.krispite.fabric.KrispiteFabric"]
-    },
     "mixins": [
         {
             "config": "krispite.mixins.json",

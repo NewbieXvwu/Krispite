@@ -50,4 +50,4 @@ Outputs:
 If the native libraries are missing, the build process will issue a warning but will not fail. This is designed to make it easier to compile the Java code on non-macOS systems.
 
 # Uninstallation
-Delete the mod JAR file, along with the `~/.local/share/kosmickrisp-mc/` directory and the `~/.local/share/vulkan/icd.d/libkosmickrisp_icd.json` file.
+Delete the mod JAR file, along with the `~/.local/share/kosmickrisp-mc/` directory.

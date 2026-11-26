@@ -1,5 +1,6 @@
 package com.krispite.mixin;
 
+import com.krispite.KrispiteEarlySetup;
 import com.krispite.KrispiteLog;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
@@ -23,7 +24,7 @@ abstract class OptionsMixin {
 
     @Inject(method = "load", at = @At("RETURN"))
     private void krispite$forceVulkanBackend(CallbackInfo ci) {
-        if (!System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac")) {
+        if (!KrispiteEarlySetup.isMac()) {
             return;
         }
         this.preferredGraphicsBackend.set(PreferredGraphicsApi.VULKAN);

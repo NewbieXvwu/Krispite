@@ -164,7 +164,7 @@ jobs:
           swift "$RUNNER_TEMP/metal.swift" || true
           system_profiler SPDisplaysDataType || true
           brew install vulkan-tools > /dev/null
-          ICD="$HOME/.local/share/vulkan/icd.d/libkosmickrisp_icd.json"
+          ICD="$HOME/.local/share/kosmickrisp-mc/icd/libkosmickrisp_icd.json"
           cat "$ICD" || true
           VK_LOADER_DEBUG=error,warn,info,driver VK_DRIVER_FILES="$ICD" vulkaninfo --summary 2>&1 | tee game-test-output/vulkaninfo.txt || true
       - uses: actions/upload-artifact@v7

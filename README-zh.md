@@ -47,4 +47,4 @@ pip3 install mako pyyaml packaging
 原生库缺失时构建会警告但不会失败，方便在非 macOS 上编译 Java 代码。
 
 # 卸载
-删掉 mod JAR、`~/.local/share/kosmickrisp-mc/` 和 `~/.local/share/vulkan/icd.d/libkosmickrisp_icd.json`。
+删掉 mod JAR 和 `~/.local/share/kosmickrisp-mc/`。

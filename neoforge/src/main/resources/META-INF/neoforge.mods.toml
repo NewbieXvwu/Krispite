@@ -11,9 +11,6 @@ description='''KosmicKrisp Vulkan driver integration for Minecraft'''
 [[mixins]]
 config="krispite.mixins.json"
 
-[[mixins]]
-config="krispite.neoforge.mixins.json"
-
 [[dependencies.krispite]]
     modId="neoforge"
     type="required"

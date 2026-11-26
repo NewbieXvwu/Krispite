@@ -1,5 +1,6 @@
 package com.krispite.mixin;
 
+import com.krispite.KrispiteEarlySetup;
 import com.krispite.KrispiteLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.PreferredGraphicsApi;
@@ -23,7 +24,7 @@ abstract class MinecraftMixin {
     )
     private Object krispite$keepVulkanAfterCrashRecovery(Object requestedValue) {
         if (!(requestedValue instanceof PreferredGraphicsApi)
-                || !System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac")) {
+                || !KrispiteEarlySetup.isMac()) {
             return requestedValue;
         }
         // Minecraft resets Vulkan to Default (and then OpenGL) after an unclean exit.

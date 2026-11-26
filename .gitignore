@@ -25,3 +25,4 @@ common/src/main/resources/natives/*.dylib
 common/src/main/resources/natives/natives-version.properties
 common/src/main/resources/META-INF/licenses/kosmickrisp/
 run/
+game-test-output/

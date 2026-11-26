@@ -43,12 +43,12 @@ public final class NativeExtractor {
         return dataDirectory().resolve("lib");
     }
 
+    /**
+     * The ICD manifest lives in our own data directory and is passed to the loader through
+     * VK_DRIVER_FILES, so other Vulkan applications never pick up KosmicKrisp.
+     */
     public static Path icdDirectory() {
-        String override = System.getProperty("krispite.icdDir");
-        if (override != null && !override.isBlank()) {
-            return Path.of(override);
-        }
-        return Path.of(System.getProperty("user.home"), ".local", "share", "vulkan", "icd.d");
+        return dataDirectory().resolve("icd");
     }
 
     public static Path vulkanLoaderPath() {
@@ -86,6 +86,16 @@ public final class NativeExtractor {
         String template = readTextResource(ICD_FILE);
         String json = template.replace("${library_path}", jsonString(kosmicKrispPath().toAbsolutePath().toString()));
         writeIfChanged(icdPath(), json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /** Krispite 1.1.0 and older installed the manifest into the user-wide Vulkan search path. */
+    public static void removeLegacyIcdJson() throws IOException {
+        Path legacy = Path.of(System.getProperty("user.home"), ".local", "share", "vulkan", "icd.d", ICD_FILE);
+        if (Files.isRegularFile(legacy)
+                && Files.readString(legacy).contains(jsonString(kosmicKrispPath().toAbsolutePath().toString()))) {
+            Files.delete(legacy);
+            KrispiteLog.info("native.removed_legacy_icd", legacy);
+        }
     }
 
     /** Directs the Vulkan loader to KosmicKrisp before LWJGL loads that loader. */

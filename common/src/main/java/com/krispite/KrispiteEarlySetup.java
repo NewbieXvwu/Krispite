@@ -1,5 +1,6 @@
 package com.krispite;
 
+import java.util.Locale;
 import org.lwjgl.system.Configuration;
 
 /** Loader-agnostic early setup: extracts native Vulkan libraries and redirects LWJGL. */
@@ -8,8 +9,13 @@ public final class KrispiteEarlySetup {
     private KrispiteEarlySetup() {
     }
 
+    public static boolean isMac() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    }
+
+    /** Called once, right before Minecraft loads the Vulkan loader. */
     public static void init() {
-        if (!System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("mac")) {
+        if (!isMac()) {
             KrispiteLog.warn("prelaunch.skipped_os");
             return;
         }
@@ -17,6 +23,7 @@ public final class KrispiteEarlySetup {
         try {
             NativeExtractor.extract();
             NativeExtractor.writeIcdJson();
+            NativeExtractor.removeLegacyIcdJson();
             NativeExtractor.configureVulkanDriver();
             String loaderPath = NativeExtractor.vulkanLoaderPath().toAbsolutePath().toString();
             String previous = Configuration.VULKAN_LIBRARY_NAME.get();
