@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       mesa_commit:
-        description: Mesa commit to build KosmicKrisp from (default: latest main)
+        description: "Mesa commit to build KosmicKrisp from (default: latest main)"
         required: false
       loader_commit:
-        description: Vulkan-Loader commit (default: latest main)
+        description: "Vulkan-Loader commit (default: latest main)"
         required: false
 
 concurrency:
